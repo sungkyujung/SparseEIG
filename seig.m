@@ -1,14 +1,17 @@
-function [v,d,lambda,q] = seig(A,B,k,sp,option)
+function [v,d,lambda,q] = seig(A,B,k,sp,option,abssp)
 % SEIG Sparse Generalized eigendecomposition via Penalized Orthogonal
 % Iteration (POI)
 %
 % This is a wrapper for a simple use of POI algorithm to solve a GEP. 
 % 
-% [v,d,lambda] = seig(A,B); A and B are symmetric non-negative definite matrices
+% [v,d,lambda,q] = seig(A,B) ;
+% [v,d,lambda,q] = seig(A,[]);
+% [v,d,lambda,q] = seig(A);   A and B are symmetric non-negative definite matrices
 % of the size p x p, v is the first eigenvector, d is the corresponding
 % largest eigenvalue, lambda is the tuning parameter used.
 % If B is the identity matrix, eye(p), or is empty,[], then this corresponds
-% to the penalized solution to the eigenvalue decomposition. 
+% to the penalized solution to the eigenvalue decomposition. Here, q is the 
+% orthogonal basis that spans columns of v (Note that v is only B-orthogonal).
 %
 % [v,d,lambda,q] = seig(A,B,k); k is the dimension of the subspace, or the number of
 % eigenvectors. By default, k = 1. For k > 1, v is the eigenvector matrix
@@ -39,6 +42,9 @@ function [v,d,lambda,q] = seig(A,B,k,sp,option)
 
 default.option = 'POI-C';
 default.k = 1; 
+if nargin < 2; 
+    B = [];
+end
 if nargin < 3; 
     k = default.k; 
     option = default.option;
@@ -49,17 +55,36 @@ elseif nargin < 4;
 elseif nargin < 5;
     option = default.option;
 end
-    
+
+
 if isempty(sp)
     sp = 1/2 ; 
 end
-
 lambda = POIlim(A,option,k)*sp; 
 
-if rank(B) < size(B,1)
-    p = size(B,1); 
-    B = B + log(p)/rank(B) * eye(p);
+
+if nargin == 6;  % debug purpose only 
+    if abssp; lambda = sp; end
 end
+
+
+if isempty(B)
+    B = eye(size(A,1));
+else
+    rB = rank(B);
+    if rB < size(B,1)
+        p = size(B,1); 
+        eps = log(p) / rB ; 
+        eps2 = min(diag(B)) ;
+        if  eps2 > 0 ; 
+            eps = min(eps,eps2);
+        end
+        B = B + eps * eye(p);
+    end
+end
+
+
+
 
 maxIterInner =500;
 Q = POI(B, A, lambda, k, option, maxIterInner);

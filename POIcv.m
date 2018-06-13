@@ -82,9 +82,8 @@ if ~exist('lvec','var')
     
     
     % Added ON 9/11/2017
-    % Large lambda typically performs worse
-    %
-    lmax = lmax * 2/3;
+    % 
+    % lmax = lmax * 2/3;
     
     
     lvec = (0.75.^(ll-1:-1:0) .* lmax);
